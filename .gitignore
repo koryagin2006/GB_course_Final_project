@@ -116,3 +116,4 @@ dmypy.json
 *.XSD
 *.json
 *.csv
+data/
