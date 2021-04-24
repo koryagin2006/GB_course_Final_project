@@ -94,3 +94,4 @@ data = data \
 data.printSchema()
 
 # TODO: Решить, что делать со значениями '-1'
+# TODO: Пересохранение файла в формат .parquet
