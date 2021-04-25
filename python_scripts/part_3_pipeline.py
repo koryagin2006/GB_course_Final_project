@@ -31,6 +31,4 @@ def train_test_split_by_week(df, week_col_name, test_size_weeks):
 
 
 # Разделим набор данных на тренировочную и тестовую выборки
-data_train, data_test = train_test_split_by_week(df=data,
-                                                 week_col_name='week_of_year',
-                                                 test_size_weeks=3)
+data_train, data_test = train_test_split_by_week(df=data, week_col_name='week_of_year', test_size_weeks=3)
