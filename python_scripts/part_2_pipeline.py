@@ -1,7 +1,5 @@
 """
-/spark2.4/bin/pyspark \
-    --driver-memory 512m \
-    --driver-cores 1
+/spark2.4/bin/pyspark
 """
 
 from pyspark.sql import SparkSession
@@ -34,8 +32,5 @@ data = data \
 data = data.withColumn(colName='quantity', col=F.regexp_replace(str='quantity', pattern=',', replacement='.'))
 data = data.withColumn(colName='quantity', col=data['quantity'].cast(FloatType()))
 
-# TODO: Пересохранение файла в формат .parquet
-# data.write.parquet(path="input_csv_for_recommend_system/data.parquet")
-# data.write.json(path="input_csv_for_recommend_system/data.json")
-
-# Выдает файл с размером = 0
+# Пересохранение файла в формат .parquet
+data.write.parquet(path="input_csv_for_recommend_system/data.parquet", mode='overwrite')
