@@ -55,6 +55,13 @@ data.select(F.min('week_of_year'), F.max('week_of_year'),
 
 
 def train_test_split_by_week(df, week_col_name, test_size_weeks):
+    """
+    Разделение на train и test по неделям
+    :param df: исходный датафрейм
+    :param week_col_name: название колонки с номерами недели в году
+    :param test_size_weeks: число недель для теста
+    :return: 2 датасета
+    """
     threshold_week = int(data.select(F.max(week_col_name)).collect()[0][0]) - test_size_weeks
     train = df.filter(F.col(week_col_name) < threshold_week)
     test = df.filter(F.col(week_col_name) >= threshold_week)
