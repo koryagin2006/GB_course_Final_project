@@ -10,7 +10,6 @@ spark = SparkSession.builder.appName("gogin_spark").getOrCreate()
 
 # для начала готовим DataFrame
 data = spark.read.parquet("input_csv_for_recommend_system/data.parquet")
-data.show(n=5, truncate=True)
 
 # Введем колонку с номером недели
 data = data.withColumn('week_of_year', F.weekofyear(F.col('sale_date_date')))
