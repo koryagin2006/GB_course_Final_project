@@ -12,8 +12,8 @@ spark = SparkSession.builder.appName("gogin_spark").getOrCreate()
 
 data = spark.read.parquet("input_csv_for_recommend_system/data.parquet")  # для начала готовим DataFrame
 
-data = data \
-    .withColumn(colName='week_of_year', col=F.weekofyear(F.col('sale_date_date')))  # Введем колонку с номером недели
+# Введем колонку с номером недели
+data = data.withColumn(colName='week_of_year', col=F.weekofyear(F.col('sale_date_date')))
 
 
 def train_test_split_by_week(df, week_col_name, test_size_weeks):
@@ -28,6 +28,14 @@ data_train, data_test = train_test_split_by_week(df=data, week_col_name='week_of
 
 
 def transform_for_als(df, user_col_name, item_col_name, rating_col_name):
+    """
+    Преобразование для ALS
+    :param df: исходный датафрейм
+    :param user_col_name: имя колонки пользователей/покупателей
+    :param item_col_name: имя колонки с товарами
+    :param rating_col_name: имя колонки с рейтингом (сумма, количество продаж)
+    :return: преобразованный датафрейм
+    """
     return df \
         .select(user_col_name, item_col_name, rating_col_name) \
         .groupBy(user_col_name, item_col_name).sum(rating_col_name) \
@@ -43,5 +51,3 @@ model = ALS.trainImplicit(ratings=train, rank=10, alpha=0.01, nonnegative=True, 
 # Save model
 model.save(sc, "ml_models/myCollaborativeFilter")
 # sameModel = MatrixFactorizationModel.load(sc, "ml_models/myCollaborativeFilter")
-
-

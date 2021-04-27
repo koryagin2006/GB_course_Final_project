@@ -25,11 +25,4 @@ def custom_predictions(user_id, num_preds=5):
 user_list = [903455, 983545, 1962163, 795400, 850395]
 
 for user in user_list:
-    print(custom_predictions(user_id=user, num_preds=5))
-"""
-[137539, 110629, 41096, 135427, 31212]
-[110629, 41096, 135427, 137539, 46797]
-[63439, 168308, 130230, 149540, 124837]
-[110629, 41096, 135427, 137539, 46797]
-[110629, 137539, 41096, 135427, 46797]
-"""
+    print('for user {} predictions list: {}'.format(user, custom_predictions(user_id=user, num_preds=5)))

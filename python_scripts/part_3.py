@@ -13,11 +13,10 @@ data = spark.read.parquet("input_csv_for_recommend_system/data.parquet")
 data.show(n=5, truncate=True)
 
 # Посмотрим диапазон дат
-data.select(
-    F.min('sale_date_date').alias('first_date'),
-    F.max('sale_date_date').alias('last_date'),
-    F.datediff(F.max('sale_date_date'), F.min('sale_date_date')).alias('datediff')
-).show(truncate=False)
+data.select(F.min('sale_date_date').alias('first_date'),
+            F.max('sale_date_date').alias('last_date'),
+            F.datediff(F.max('sale_date_date'), F.min('sale_date_date')).alias('datediff')) \
+    .show(truncate=False)
 
 # Разряженность матрицы = 0.0333%
 n_users = data.select(F.countDistinct(col='contact_id')).collect()[0][0]
@@ -36,22 +35,13 @@ popularity_by_items \
     .withColumn(colName="total_quantity", col=popularity_by_items["total_quantity"].cast(IntegerType(), )) \
     .show(n=5)
 
-# популярность - группируем пользователей по сумме продаж
-popularity_by_users = data \
-    .groupBy("contact_id").sum("quantity") \
-    .withColumnRenamed(existing='sum(quantity)', new='total_quantity')
-
-popularity_by_users.select('total_quantity').describe().show(truncate=False)
-popularity_by_users.orderBy('total_quantity', ascending=False) \
-    .withColumn(colName="total_quantity", col=popularity_by_users["total_quantity"].cast(IntegerType(), )) \
-    .show(n=5)
-
-# Введем колонку с номером недели
+# Добавим колонку с номером недели
 data = data.withColumn('week_of_year', F.weekofyear(F.col('sale_date_date')))
 
 # Посмотрим диапазон между первой и последней неделей
 data.select(F.min('week_of_year'), F.max('week_of_year'),
-            (F.max('week_of_year') - F.min('week_of_year')).alias('week_diff')).show(truncate=False)
+            (F.max('week_of_year') - F.min('week_of_year')).alias('week_diff')) \
+    .show(truncate=False)
 
 
 def train_test_split_by_week(df, week_col_name, test_size_weeks):
@@ -68,8 +58,6 @@ def train_test_split_by_week(df, week_col_name, test_size_weeks):
     return train, test
 
 
+# Разделим набор данных на тренировочную и тестовую выборки
 data_train, data_test = train_test_split_by_week(df=data, week_col_name='week_of_year', test_size_weeks=3)
 data_test.show()
-
-
-
