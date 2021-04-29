@@ -16,6 +16,9 @@ data = spark.read \
 # Удалить последние 3 строки в DF
 data = data.where(F.col('sale_date_date') != '(затронуто стр')
 
+# Удалить строки, где quantity = -1
+data = data.where(F.col('quantity') != '-1')
+
 # Переведем sale_date_date в формат DateType
 data = data.withColumn(colName="sale_date_date", col=data["sale_date_date"].cast(DateType()))
 
