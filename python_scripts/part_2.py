@@ -24,6 +24,9 @@ for col in data.columns:
 # Посмотрим число -1 в каждом столбце.
 for col in data.columns:
     print(col, "count of -1 values = ", data.filter(data[col] == '-1').count())
+    
+# Удалить строки, где quantity = -1
+data = data.where(F.col('quantity') != '-1')
 
 # Посмотрим конец таблицы по 2 столбцам
 data.select('sale_date_date', 'contact_id') \
