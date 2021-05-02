@@ -6,13 +6,12 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import IntegerType, FloatType, DateType
 
+# Копировать в терминал не нужно
 spark = SparkSession.builder.appName("gogin_spark").getOrCreate()
 
-# для начала готовим DataFrame
-data = spark.read.parquet("input_csv_for_recommend_system/data.parquet")
+data = spark.read.parquet("input_csv_for_recommend_system/data.parquet")  # для начала готовим DataFrame
 
-# Введем колонку с номером недели
-data = data.withColumn('week_of_year', F.weekofyear(F.col('sale_date_date')))
+data = data.withColumn('week_of_year', F.weekofyear(F.col('sale_date_date')))  # Введем колонку с номером недели
 
 
 def train_test_split_by_week(df, week_col_name, test_size_weeks):
