@@ -6,6 +6,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import IntegerType, FloatType, DateType
 
+# Копировать в терминал не нужно
 spark = SparkSession.builder.appName("gogin_spark").getOrCreate()
 
 # для начала готовим DataFrame
@@ -13,8 +14,8 @@ data = spark.read \
     .options(delimiter=',', inferschema=True, header=True) \
     .csv(path="input_csv_for_recommend_system/data.csv")
 
-# Удалить последние 3 строки в DF
-data = data.where(F.col('sale_date_date') != '(затронуто стр')
+data = data.where(F.col('sale_date_date') != '(затронуто стр')  # Удалить последние 3 строки в DF
+data = data.where(F.col('quantity') != '-1')  # Удалить строки, в которых quantity == -1
 
 # Переведем sale_date_date в формат DateType
 data = data.withColumn(colName="sale_date_date", col=data["sale_date_date"].cast(DateType()))
