@@ -51,10 +51,9 @@ orders_for_w2v = orders_filtered \
     .agg(F.collect_list(col='name'))
 
 # orders_for_w2v.count()  # 5916047
-# orders_for_w2v.show(n=5, truncate=False)
 
 orders_train, orders_test = train_test_split_by_week(df=orders_for_w2v, week_col_name='week_of_year', test_size_weeks=3)
-
+orders_train.show(n=5, truncate=False)
 # Learn a mapping from words to Vectors.
 word2Vec = Word2Vec(vectorSize=3, minCount=0, inputCol="actual_products", outputCol="result")
 model = word2Vec.fit(dataset=orders_train)
