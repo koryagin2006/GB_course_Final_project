@@ -18,7 +18,7 @@ def train_test_split_by_week(df, week_col_name, test_size_weeks):
 
 
 # для начала готовим DataFrames
-data = spark.read.parquet("input_csv_for_recommend_system/data.parquet")
+data = spark.read.parquet("hdfs://bigdataanalytics2-head-shdpt-v31-1-0.novalocal:8020/user/305_koryagin/data/input_csv_for_recommend_system/data.parquet")
 data = data.withColumn(colName="sale_date_date", col=data["sale_date_date"].cast(DateType()))
 
 products = spark.read \

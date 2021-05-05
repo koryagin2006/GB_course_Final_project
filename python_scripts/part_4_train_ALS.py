@@ -5,79 +5,95 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.ml.evaluation import RegressionEvaluator
 from pyspark.ml.recommendation import ALS, ALSModel
+from pyspark.sql.functions import col, explode
+from pyspark import SparkContext
+from pyspark.sql.types import IntegerType, FloatType, DateType, StructType, StructField, StringType
 
-spark = SparkSession.builder.appName("gogin_spark").getOrCreate()
+from pyspark.sql import SparkSession
 
+# Import the required functions
+from pyspark.ml.evaluation import RegressionEvaluator
+from pyspark.ml.recommendation import ALS
+from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
 
-def clean_minus_1(df):
-    return df \
-        .where(F.col('product_id') != '-1') \
-        .where(F.col('product_sub_category_id') != '-1') \
-        .where(F.col('product_category_id') != '-1')
+from pyspark.ml.evaluation import RegressionEvaluator
+from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
+from pyspark.sql import functions as F
 
-
-def train_test_split_by_week(df, week_col_name, test_size_weeks):
-    """ Разделение на train и test по неделям """
-    threshold_week = int(data.select(F.max(week_col_name)).collect()[0][0]) - test_size_weeks
-    df_train = df.filter(F.col(week_col_name) < threshold_week)
-    df_test = df.filter(F.col(week_col_name) >= threshold_week)
-    return df_train, df_test
-
-
-def transform_for_als(df, user_col_name, item_col_name, rating_col_name):
-    """
-    Преобразование для ALS
-    :param df: исходный датафрейм
-    :param user_col_name: имя колонки пользователей/покупателей
-    :param item_col_name: имя колонки с товарами
-    :param rating_col_name: имя колонки с рейтингом (сумма, количество продаж)
-    :return: преобразованный датафрейм
-    """
-    return df \
-        .select(user_col_name, item_col_name, rating_col_name) \
-        .groupBy(user_col_name, item_col_name).sum(rating_col_name) \
-        .withColumn(colName='sum(quantity)', col=F.when(condition=F.col('sum(quantity)') > 0, value=1)) \
-        .withColumnRenamed(existing='sum(quantity)', new='rating')
+import time
 
 
-# для начала готовим DataFrame
-data = clean_minus_1(df=spark.read.parquet("input_csv_for_recommend_system/data.parquet"))
-# Введем колонку с номером недели
-data = data.withColumn(colName='week_of_year', col=F.weekofyear(F.col('sale_date_date')))
+sc = SparkContext
+# sc.setCheckpointDir('checkpoint')
+spark = SparkSession.builder.appName('305_Recommendations').getOrCreate()
+spark.sparkContext.setLogLevel("ERROR")
 
-data_train, data_test = train_test_split_by_week(df=data, week_col_name='week_of_year', test_size_weeks=3)
-train = transform_for_als(data_train, 'contact_id', 'product_id', 'quantity')
-test = transform_for_als(data_test, 'contact_id', 'product_id', 'quantity')
 
-# Обучение
-als = ALS(maxIter=5, regParam=0.1, userCol="contact_id", itemCol="product_id",
-          ratingCol="rating", implicitPrefs=False)
-model = als.fit(dataset=train)
+data = spark.read.parquet("hdfs://bigdataanalytics2-head-shdpt-v31-1-0.novalocal:8020/user/305_koryagin/input_csv_for_recommend_system/data.parquet")
+data = data \
+    .select('contact_id', 'product_id', 'quantity') \
+    .withColumn('quantity', F.when(F.col("quantity") != 1, 1).otherwise(F.col("quantity"))) \
+    .withColumnRenamed(existing='product_id', new='item_id') \
+    .withColumnRenamed(existing='contact_id', new='user_id')
+
+# Сделаем сэмпл. Обучим на части датасета
+data = data.sample(fraction=0.2, seed=5)
+
+
+numerator = data.select("quantity").count()
+num_users = data.select("user_id").distinct().count()
+num_items = data.select("item_id").distinct().count()
+denominator = num_users * num_items
+sparsity = (1.0 - (numerator * 1.0) / denominator) * 100
+
+df = spark.createDataFrame(data=[('total number of data', str('{0:,}'.format(numerator).replace(',', '\''))),
+                                 ('number of users', str('{0:,}'.format(num_users).replace(',', '\''))),
+                                 ('number of items', str('{0:,}'.format(num_items).replace(',', '\''))),
+                                 ('sparsity', str(sparsity)[:5]+"% empty")],
+                           schema=StructType([StructField("featute",StringType()), 
+                                              StructField("value",StringType())]))
+df.show(truncate=False)
+
+# Create test and train set
+(train, test) = data.randomSplit([0.9, 0.1], seed=3)
+
+# Create ALS model
+als = ALS(userCol="user_id", itemCol="item_id", ratingCol="quantity", 
+          nonnegative=True, implicitPrefs=True, coldStartStrategy="drop")
+evaluator = RegressionEvaluator(metricName="rmse", labelCol="quantity", predictionCol="prediction")
+
+t_start = time.time()
+
+model = als.fit(train)
+
+t_end = time.time()
+print('time', t_end - t_start)
 
 # Save model
-model.save(path="ml_models/my_als_2021-04-28")
-model.save(path="ml_models/my_als_2021-05-03")
+model.save("ml_models/my_als_2021-05-05_samlpe_20_percents")
 
-# Load model
-model = ALSModel.load('ml_models/my_als_2021-04-28')
+# Complete the code below to extract the ALS model parameters
+print("Model")
+print("     Rank:", model._java_obj.parent().getRank())
+print("     MaxIter:", model._java_obj.parent().getMaxIter())
+print("     RegParam:", model._java_obj.parent().getRegParam())
 
-# Evaluate the model by computing the RMSE on the test data
-predictions = model.transform(dataset=test)
-predictions.orderBy(['contact_id', 'prediction'], ascending=[True, False]).show(n=20, truncate=False)
-predictions.orderBy('prediction', ascending=False).show(n=20, truncate=False)
+# View the predictions
+test_predictions = model.transform(test)
+RMSE = evaluator.evaluate(test_predictions)
+print('RMSE = ', RMSE)
 
-# check the root mean squared error
-evaluator = RegressionEvaluator(metricName='rmse', predictionCol='prediction', labelCol='quantity')
-rmse = evaluator.evaluate(predictions)
-print('Root mean squared error of the test_data: %.4f' % rmse)
+nrecommendations = model.recommendForAllUsers(5)
+nrecommendations.show(n=10)
 
-# Generate top 5 products recommendations for each contact
-userRecs = model.recommendForAllUsers(numItems=5)
+nrecommendations = nrecommendations \
+    .withColumn(colName="rec_exp", col=explode("recommendations"))\
+    .select('user_id', col("rec_exp.item_id"), col("rec_exp.rating"))
+nrecommendations.show(n=10)
 
-userRecs.printSchema()
 
-userRecs \
-    .select('contact_id', F.col("recommendations").cast("String")) \
-    .printSchema()
 
-userRecs.show(n=10, truncate=False)
+data.count()
+data.printSchema()
+data.show(n=10)
+data.select('quantity').describe().show()
