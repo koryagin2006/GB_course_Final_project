@@ -26,4 +26,7 @@ import time
 spark = SparkSession.builder.appName("gogin_spark").getOrCreate()
 
 # Load model
-model = ALSModel.load(path="ml_models/my_als_2021-05-05")
+model = ALSModel.load(path="ml_models/my_als_model_2021-05-05_samlpe_20_percents")
+
+n_recommendations = model.recommendForAllUsers(numItems=5)
+n_recommendations.show(n=10)
