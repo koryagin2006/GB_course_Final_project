@@ -7,7 +7,7 @@ from pyspark.sql import functions as F
 
 spark = SparkSession.builder.appName("gogin_spark").getOrCreate()
 
-data = spark.read.parquet("input_csv_for_recommend_system/data.parquet")
+data = spark.read.parquet("input_csv_for_recommend_system/data_clean.parquet")
 
 
 def clean_minus_1(df):
@@ -18,7 +18,7 @@ def clean_minus_1(df):
 
 
 data = clean_minus_1(df=data)
-data.count()  # 19 303 330
 
-# Пересохранение файла в формат .parquet - выдает ошибку, не сохраняет
-# data.write.parquet(path="input_csv_for_recommend_system/data.parquet", mode='overwrite')
+# Пересохранение файла в формат .parquet
+# TODO:  - выдает ошибку, не сохраняет
+data.write.parquet(path="input_csv_for_recommend_system/data.parquet", mode='overwrite')
