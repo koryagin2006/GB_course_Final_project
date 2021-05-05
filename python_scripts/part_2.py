@@ -24,7 +24,7 @@ for col in data.columns:
 # Посмотрим число -1 в каждом столбце.
 for col in data.columns:
     print(col, "count of -1 values = ", data.filter(data[col] == '-1').count())
-    
+
 # Удалить строки, где quantity = -1
 data = data.where(F.col('quantity') != '-1')
 
@@ -52,9 +52,6 @@ data = data \
 # Переведем quantity в формат FloatType
 data = data.withColumn(colName='quantity', col=F.regexp_replace(str='quantity', pattern=',', replacement='.'))
 data = data.withColumn(colName='quantity', col=data['quantity'].cast(FloatType()))
-
-# TODO: Решить, что делать со значениями '-1'
-
 
 # Пересохранение файла в формат .parquet
 data.write.parquet(path="input_csv_for_recommend_system/data.parquet", mode='overwrite')
