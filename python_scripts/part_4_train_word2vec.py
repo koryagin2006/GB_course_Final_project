@@ -77,4 +77,3 @@ print(loadedModel.getVectors().first().word == model.getVectors().first().word)
 # model.getVectors().show(n=30, truncate=False)
 
 # TODO: Настроить метрику
-# TODO: Настроить перевзвешивание tf или брать sum(quantity) / max(sum(quantity) over users)
