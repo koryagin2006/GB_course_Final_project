@@ -66,22 +66,56 @@ spark.createDataFrame(
     data=[('Rank', str(model.rank)), ('MaxIter', str(als.getMaxIter())), ('RegParam', str(als.getRegParam()))],
     schema=StructType([StructField("parameter", StringType()), StructField("value", StringType())])).show()
 
-spark.createDataFrame(data=[('Rank', str(model.rank)),
-                            ('MaxIter', str(als.getMaxIter())),
-                            ('RegParam', str(als.getRegParam()))]).show()
-
 # View the predictions
 test_predictions = model.transform(test)
 RMSE = evaluator.evaluate(test_predictions)
 print('RMSE = ' + str(round(RMSE, 4)))
 
+# 
 n_recommendations = model.recommendForAllUsers(numItems=5)
-n_recommendations.show(n=10)
+n_recommendations.show(n=10, truncate=True)
+
+
 
 n_recommendations = n_recommendations \
     .withColumn(colName="rec_exp", col=F.explode("recommendations")) \
     .select('user_id', F.col("rec_exp.item_id"), F.col("rec_exp.rating"))
 n_recommendations.show(n=10)
 
-# TODO: Настроить нормальную метрику, типа map@k
+
 # TODO: Настроить перевзвешивание tf или брать sum(quantity) / max(sum(quantity) over users)
+
+
+# Создадим таблицу с реальными и предсказанными товарами
+train_actual_items = train \
+    .select('user_id', 'item_id') \
+    .groupBy('user_id').agg(F.collect_list(col='item_id')) \
+    .withColumnRenamed(existing='collect_list(item_id)', new='actual')
+
+train_recs_items = n_recommendations \
+    .select('user_id', F.col("recommendations.item_id").alias('recs_ALS'))
+
+result = train \
+    .select('user_id', 'item_id') \
+    .groupBy('user_id').agg(F.collect_list(col='item_id')) \
+    .withColumnRenamed(existing='collect_list(item_id)', new='actual') \
+    .join(
+        other=n_recommendations.select('user_id', F.col("recommendations.item_id").alias('recs_ALS')), 
+        on='user_id', how='inner')
+
+result = train_actual_items.join(other=train_recs_items, on='user_id', how='inner')
+
+result.printSchema()
+result.show(n=10, truncate=True)
+
+
+# TODO: Настроить нормальную метрику, типа map@k
+
+from pyspark.mllib.evaluation import RankingMetrics
+
+rdd = result.select('actual', 'recs_ALS').rdd.map(tuple)
+metrics = RankingMetrics(rdd)
+
+metrics.precisionAt(5)  # 0.04911073411814928
+metrics.ndcgAt(5)  # 0.05934767273000293
+metrics.meanAveragePrecision  # 0.034107988951329625
