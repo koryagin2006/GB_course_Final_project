@@ -9,23 +9,9 @@ from pyspark.sql.types import DateType, StringType
 spark = SparkSession.builder.appName("gogin_spark").getOrCreate()
 user_path = "hdfs://bigdataanalytics2-head-shdpt-v31-1-0.novalocal:8020/user/305_koryagin/"
 
-
-def train_test_split_by_week(df, week_col_name, test_size_weeks):
-    """ Разделение на train и test по неделям """
-    threshold_week = int(data.select(F.max(week_col_name)).collect()[0][0]) - test_size_weeks
-    df_train = df.filter(F.col(week_col_name) < threshold_week)
-    df_test = df.filter(F.col(week_col_name) >= threshold_week)
-    return df_train, df_test
-
 # Load Data
 data = spark.read.parquet(user_path + "input_csv_for_recommend_system/data.parquet")
 products = spark.read.parquet(user_path + "input_csv_for_recommend_system/Product_dict.parquet")
-
-
-data \
-    .select('product_id').distinct() \
-    .join(other=products, on='product_id', how='inner') \
-    .show()
 
 
 # Data Preparation
@@ -36,20 +22,13 @@ data = data \
     .withColumn(colName="product_id", col=data["product_id"].cast(StringType()))
 products = products.withColumnRenamed(existing='__index_level_0__', new='product_id')
 
-# data = data.withColumn(colName='week_of_year', col=F.weekofyear(F.col('sale_date_date')))
-
-# Join `data` and `products`
-# data = data.join(other=products, on='product_id', how='left').show()
-
 # Number of unique users in our dataset
 users = data.select('contact_id').distinct()
 print('Number of unique users = ' + str('{0:,}'.format(users.count()).replace(',', '\'')))  # 1'636'831
 
-
 # extract 90% of customer ID's
 (users_train, users_valid) = users.randomSplit(weights=[0.9, 0.1], seed=5)
 print(users_train.count(), users_valid.count())  # (1'473'217, 163'614)
-
 
 # split data into train and validation set
 train_df = data.join(other=users_train, on='contact_id', how='inner')
@@ -65,6 +44,7 @@ def create_col_orders(df):
     .groupBy('order_id') \
     .agg(F.collect_list(col='product_id')) \
     .withColumnRenamed(existing='collect_list(product_id)', new='actual_products')
+
 
 train_orders = create_col_orders(df=train_df)
 validation_orders = create_col_orders(df=validation_df)
