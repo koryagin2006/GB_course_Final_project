@@ -20,5 +20,4 @@ def clean_minus_1(df):
 data = clean_minus_1(df=data)
 
 # Пересохранение файла в формат .parquet
-# TODO:  - выдает ошибку, не сохраняет
 data.write.parquet(path="input_csv_for_recommend_system/data.parquet", mode='overwrite')
