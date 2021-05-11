@@ -39,19 +39,20 @@ def sample_by_week(df, week_col_name, split_size_weeks):
 before, after = sample_by_week(df=data, week_col_name='week_of_year', split_size_weeks=15)
 data = after
 
-# Basic statistics of data
-numerator = data.select("quantity").count()
-num_users = data.select("user_id").distinct().count()
-num_items = data.select("item_id").distinct().count()
-denominator = num_users * num_items
-sparsity = (1.0 - (numerator * 1.0) / denominator) * 100
 
-statistics = spark.createDataFrame(data=[('total number of rows', str('{0:,}'.format(numerator).replace(',', '\''))),
-                                         ('number of users', str('{0:,}'.format(num_users).replace(',', '\''))),
-                                         ('number of items', str('{0:,}'.format(num_items).replace(',', '\''))),
-                                         ('sparsity', str(sparsity)[:5] + "% empty")],
-                                   schema=['statistic', 'value'])
-statistics.show(truncate=False)
+def basic_statistics_of_data():
+    numerator = data.select("quantity").count()
+    num_users, num_items = data.select("user_id").distinct().count(), data.select("item_id").distinct().count()
+    denominator = num_users * num_items
+    sparsity = (1.0 - (numerator * 1.0) / denominator) * 100
+    return spark.createDataFrame(data=[('total number of rows', str('{0:,}'.format(numerator).replace(',', '\''))),
+                                       ('number of users', str('{0:,}'.format(num_users).replace(',', '\''))),
+                                       ('number of items', str('{0:,}'.format(num_items).replace(',', '\''))),
+                                       ('sparsity', str(sparsity)[:5] + "% empty")],
+                                 schema=['statistic', 'value'])
+
+
+basic_statistics_of_data.show(truncate=False)
 """
 +--------------------+------------+
 |statistic           |value       |
@@ -76,7 +77,7 @@ print('time = ' + str(time.time() - start))  # time = 52.6529769897
 
 # Save model
 # TODO: Не работает сохранение модели
-model.write().overwrite().save(user_path + "ml_models/my_als_model_2021-05-11_last_15_weeks")
+model.save(path=user_path + "ml_models/my_als_model_2021-05-11_last_15_weeks.model")
 
 # Параметры модели ALS.
 spark.createDataFrame(
