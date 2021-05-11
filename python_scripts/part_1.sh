@@ -4,6 +4,9 @@ hdfs dfs -rm -r input_csv_for_recommend_system/data.parquet
 
 hdfs dfs -put for_recomend_system/data.parquet input_csv_for_recommend_system
 
+hdfs dfs -rm -r ml_models/my_als_model_2021-05-11_last_15_weeks.model
+hdfs dfs -rm -r ml_models/my_als_model_2021-05-11_last_15_weeks
+
 
 hdfs dfs -rm -r ml_models/CV.model
 hdfs dfs -rm -r ml_models/IDF.model
