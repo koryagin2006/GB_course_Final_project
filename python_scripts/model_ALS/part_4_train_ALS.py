@@ -21,13 +21,23 @@ user_path = "hdfs://bigdataanalytics2-head-shdpt-v31-1-0.novalocal:8020/user/305
 # Create DF
 data = spark.read.parquet(user_path + "input_csv_for_recommend_system/data.parquet")
 data = data \
-    .select('contact_id', 'product_id', 'quantity') \
+    .select('sale_date_date', 'contact_id', 'product_id', 'quantity') \
     .withColumn('quantity', F.when(F.col("quantity") != 1, 1).otherwise(F.col("quantity"))) \
     .withColumnRenamed(existing='product_id', new='item_id') \
-    .withColumnRenamed(existing='contact_id', new='user_id')
+    .withColumnRenamed(existing='contact_id', new='user_id') \
+    .withColumn('week_of_year', F.weekofyear(F.col('sale_date_date')))
 
-# Sample 20% of data
-data = data.sample(fraction=0.2, seed=5)
+
+def sample_by_week(df, week_col_name, split_size_weeks):
+    threshold_week = int(data.select(F.max(week_col_name)).collect()[0][0]) - split_size_weeks
+    df_before = df.filter(F.col(week_col_name) < threshold_week)
+    df_after = df.filter(F.col(week_col_name) >= threshold_week)
+    return df_before, df_after
+
+
+# Отберем только 15 последних недель для обучения
+before, after = sample_by_week(df=data, week_col_name='week_of_year', split_size_weeks=15)
+data = after
 
 # Basic statistics of data
 numerator = data.select("quantity").count()
@@ -46,10 +56,10 @@ statistics.show(truncate=False)
 +--------------------+------------+
 |statistic           |value       |
 +--------------------+------------+
-|total number of rows|3'869'063   |
-|number of users     |1'130'779   |
-|number of items     |21'960      |
-|sparsity            |99.98% empty|
+|total number of rows|4'603'016   |
+|number of users     |854'281     |
+|number of items     |22'921      |
+|sparsity            |99.97% empty|
 +--------------------+------------+
 """
 # Create test and train set
@@ -62,23 +72,21 @@ evaluator = RegressionEvaluator(metricName="rmse", labelCol="quantity", predicti
 
 start = time.time()
 model = als.fit(train)
-end = time.time()
-
-print('time = ' + str(end - start))
+print('time = ' + str(time.time() - start))  # time = 52.6529769897
 
 # Save model
 # TODO: Не работает сохранение модели
-# model.write().overwrite().save(user_path + "ml_models/my_als_model_2021-05-05_samlpe_20_percents")
+model.write().overwrite().save(user_path + "ml_models/my_als_model_2021-05-11_last_15_weeks")
 
-# Complete the code below to extract the ALS model parameters
+# Параметры модели ALS.
 spark.createDataFrame(
     data=[('Rank', str(model.rank)), ('MaxIter', str(als.getMaxIter())), ('RegParam', str(als.getRegParam()))],
     schema=['parameter', 'value']).show()
 
-# View the predictions
+# Посмотрим прогнозы
 test_predictions = model.transform(test)
 RMSE = evaluator.evaluate(test_predictions)
-print('RMSE = ' + str(round(RMSE, 4)))  # RMSE = 0.9862
+print('RMSE = ' + str(round(RMSE, 4)))  # RMSE = 0.9813
 
 # Создадим таблицу с реальными и предсказанными товарами
 train_actual_items = train \
@@ -90,45 +98,56 @@ train_recs_items = model.recommendForAllUsers(numItems=5) \
     .select('user_id', F.col("recommendations.item_id").alias('recs_ALS'))
 
 result = train_actual_items.join(other=train_recs_items, on='user_id', how='inner')
-result.printSchema()
-result.show(n=10, truncate=True)
-
+result.show(n=5, truncate=True)
+"""
++-------+--------------------+--------------------+
+|user_id|              actual|            recs_ALS|
++-------+--------------------+--------------------+
+|    463|     [102659, 66900]|[61115, 138005, 1...|
+|    471|[51466, 148601, 8...|[162780, 135427, ...|
+|   1238|     [59334, 102788]|[41096, 102788, 4...|
+|   1342|     [97772, 110565]|[110629, 156491, ...|
+|   1580|     [60809, 153583]|[138005, 61115, 1...|
++-------+--------------------+--------------------+
+"""
 # Метрики качества
-rdd = result.select('actual', 'recs_ALS').rdd.map(tuple)
-metrics = RankingMetrics(rdd)
-
-metrics = spark.createDataFrame(data=[('precision@k', metrics.precisionAt(5)), ('ndcg@k', metrics.ndcgAt(5)),
-                                      ('meanAVGPrecision', metrics.meanAveragePrecision)], schema=['metric', 'value'])
-metrics.withColumn('value', F.round('value', 5)).show(truncate=False)
+metrics = RankingMetrics(predictionAndLabels=result.select('actual', 'recs_ALS').rdd.map(tuple))
+metrics_df = spark.createDataFrame(data=[('precision@k', metrics.precisionAt(5)),
+                                         ('ndcg@k', metrics.ndcgAt(5)),
+                                         ('meanAVGPrecision', metrics.meanAveragePrecision)],
+                                   schema=['metric', 'value'])
+metrics_df.withColumn('value', F.round('value', 5)).show(truncate=False)
 """
 +----------------+-------+
 |metric          |value  |
 +----------------+-------+
-|precision@k     |0.04911|
-|ndcg@k          |0.05935|
-|meanAVGPrecision|0.03411|
+|precision@k     |0.06201|
+|ndcg@k          |0.06824|
+|meanAVGPrecision|0.04092|
 +----------------+-------+
 """
 
-# TODO: Настроить перевзвешивание tf или брать sum(quantity) / max(sum(quantity) over users)
-
-train_recs_final = model.recommendForAllUsers(numItems=5) \
+train_recs_final = model \
+    .recommendForAllUsers(numItems=5) \
     .withColumn(colName="rec_exp", col=F.explode("recommendations")) \
     .select('user_id', F.col("rec_exp.item_id"), F.col("rec_exp.rating"))
-train_recs_final.show(n=10, truncate=False)
+
+
+def predict_als(user_id, n_recs=3, model=model):
+    return model \
+        .recommendForAllUsers(numItems=n_recs) \
+        .where(condition=F.col('user_id') == user_id) \
+        .withColumn(colName="rec_exp", col=F.explode("recommendations")) \
+        .select('user_id', F.col("rec_exp.item_id"))
+
+
+predict_als(user_id=471, n_recs=3).show()
 """
-+-------+-------+------------+
-|user_id|item_id|rating      |
-+-------+-------+------------+
-|471    |41096  |0.09270032  |
-|471    |140683 |0.061058853 |
-|471    |136478 |0.04728449  |
-|471    |104501 |0.044267062 |
-|471    |140162 |0.039497897 |
-|496    |41096  |0.004053822 |
-|496    |140162 |0.0028327815|
-|496    |46797  |0.0028049482|
-|496    |140683 |0.002665252 |
-|496    |32834  |0.002659647 |
-+-------+-------+------------+
++-------+-------+
+|user_id|item_id|
++-------+-------+
+|    471| 162780|
+|    471| 135427|
+|    471|  46797|
++-------+-------+
 """
