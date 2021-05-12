@@ -6,8 +6,7 @@ https://habr.com/ru/company/jetinfosystems/blog/467745/
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.ml.feature import Word2VecModel
-from pyspark.ml.clustering import KMeans
-from pyspark.ml.clustering import KMeansModel
+from pyspark.ml.clustering import KMeans, KMeansModel
 
 spark = SparkSession.builder.appName("gogin_spark").getOrCreate()
 
@@ -28,18 +27,18 @@ products = spark \
 predictions = kmeans_model.transform(product_vectors)
 
 
-def show_products_of_one_cluster(num_cluster, n_rows):
+def show_products_of_one_cluster(num_cluster, n_rows, with_sort=True):
     print('\nNumber of  current cluser = ' + str(num_cluster))
-    return predictions \
+    predictions_filtered = predictions \
         .where(condition=F.col('prediction') == num_cluster) \
         .select('product_id') \
-        .join(other=products, on='product_id', how='left') \
-        .orderBy('name', ascending=True) \
-        .show(n=n_rows, truncate=False)
+        .join(other=products, on='product_id', how='left')
+    predictions_filtered = predictions_filtered.orderBy('name', ascending=True) if with_sort else predictions_filtered
+    return predictions_filtered.show(n=n_rows, truncate=False)
 
 
-show_products_of_one_cluster(num_cluster=19, n_rows=30)
-show_products_of_one_cluster(num_cluster=10, n_rows=15)
+show_products_of_one_cluster(num_cluster=19, n_rows=30, with_sort=True)
+show_products_of_one_cluster(num_cluster=10, n_rows=15, with_sort=True)
 
 """
 Number of  current cluser = 10
@@ -55,3 +54,39 @@ Number of  current cluser = 10
 |64809     |Береза [лист фильтр-пакет 1,5г] N20 КЛС 617                     |
 +----------+----------------------------------------------------------------+
 """
+
+result = predictions \
+    .select('product_id', 'prediction') \
+    .join(other=products, on='product_id', how='left')
+
+result \
+    .groupBy('prediction').count() \
+    .orderBy('prediction') \
+    .show(n=21, truncate=False)
+
+for i in range(21):
+    show_products_of_one_cluster(num_cluster=i, n_rows=6, with_sort=False)
+
+cluster_dict = {
+    0: 'Инъекции',
+    1: 'БАДы и косметика',
+    2: 'Свечи вагинальные',
+    3: 'Для беременных',
+    4: '__Не_определено',
+    5: 'Косметика',
+    6: 'Противопростудные',
+    7: 'Перевязочные',
+    8: 'Антигипертензивные',
+    9: 'Для полости рта',
+    10: 'Травы',
+    11: 'Для детей',
+    12: 'Для проблемной кожи',
+    13: '__Не_определено',
+    14: 'Противопростудные для детей',
+    15: 'Противопаркинсоническое',
+    16: 'Глазные капли',
+    17: '__Не_определено',
+    18: '?????',
+    19: 'Желудочные',
+    20: 'Уросептики'
+}
