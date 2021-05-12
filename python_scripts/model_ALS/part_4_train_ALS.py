@@ -3,16 +3,12 @@
 """
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from pyspark import SparkContext
-from pyspark.ml.recommendation import ALS, ALSModel
+from pyspark.ml.recommendation import ALS
 from pyspark.ml.evaluation import RegressionEvaluator
 from pyspark.mllib.evaluation import RankingMetrics
-from pyspark.sql.types import IntegerType, FloatType, DateType, StructType, StructField, StringType
-from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
 import time
 
-sc = SparkContext
-# sc.setCheckpointDir('checkpoint')
+
 spark = SparkSession.builder.appName("gogin_spark").getOrCreate()
 spark.sparkContext.setLogLevel("ERROR")
 
