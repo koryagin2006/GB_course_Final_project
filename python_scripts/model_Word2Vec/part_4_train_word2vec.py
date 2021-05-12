@@ -64,7 +64,7 @@ word2Vec = Word2Vec(
 model = word2Vec.fit(dataset=train_orders)
 
 # Сохраняем модель
-model.save(path='ml_models/word2vec_model_2021_05_11')
+model.save(path=user_path + 'ml_models/word2vec_model_2021_05_11')
 
 # Загрузка модели
 loadedModel = Word2VecModel.load(path='ml_models/word2vec_model_2021_05_11')
