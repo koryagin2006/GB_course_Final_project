@@ -48,30 +48,19 @@ def create_col_orders(df):
 train_orders = create_col_orders(df=train_df)
 validation_orders = create_col_orders(df=validation_df)
 
-# TODO: Проработать необходимость. Отберем чеки с КПЧ меньше 10
-# number_of_positions_in_a_check = 10
-# orders_less = orders.groupBy('order_id').count() \
-#     .where(condition=F.col('count') < number_of_positions_in_a_check) \
-#     .select('order_id')
-# orders_filtered = orders.join(other=orders_less, on='order_id', how='inner') \
-#     .withColumn(colName="product_id", col=orders["product_id"].cast(StringType()))  # Word2Vec принимает только str
-
-
 # Learn a mapping from words to Vectors.    
 word2Vec = Word2Vec(
     vectorSize=100, minCount=5, numPartitions=1, seed=33, windowSize=3,
     inputCol='actual_products', outputCol='result')
 model = word2Vec.fit(dataset=train_orders)
 
-# Сохраняем модель
+# Save the model
 model.save(path=user_path + 'ml_models/word2vec_model_2021_05_11')
 
-# Загрузка модели
+# Loading the model
 loadedModel = Word2VecModel.load(path='ml_models/word2vec_model_2021_05_11')
 print('Good saving? -> ' + str(loadedModel.getVectors().first().word == model.getVectors().first().word))
 
 result = model.transform(dataset=validation_orders)
 
 # model.getVectors().show(n=30, truncate=True)
-
-# TODO: Настроить метрику
