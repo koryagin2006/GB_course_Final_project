@@ -11,9 +11,8 @@ spark = SparkSession.builder.appName("gogin_spark").getOrCreate()
 user_path = "hdfs://bigdataanalytics2-head-shdpt-v31-1-0.novalocal:8020/user/305_koryagin/"
 loadedModel = Word2VecModel.load(path=user_path + 'ml_models/word2vec_model_2021_05_11')
 products = spark.read \
-    .format("org.apache.spark.sql.cassandra") \
-    .options(table="products", keyspace="final_project") \
-    .load()
+    .format("org.apache.spark.sql.cassandra").options(table="products", keyspace="final_project").load() \
+    .withColumn('name', F.regexp_replace('name', r'(\(\d+\) )', ''))
 
 
 def get_synonyms_to_dataframe(model, product_id, num_synonyms=5):
