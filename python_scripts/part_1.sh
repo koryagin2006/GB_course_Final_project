@@ -18,3 +18,6 @@ hdfs dfs -rm -r ml_models/word2vec_2021_05_04
 hdfs dfs -rm -r ml_models/word2vec-model_2021_05_04
 hdfs dfs -rm -r ml_models/word2vec-model_2021_05_05_by_prod_id
 
+-D dfs.replication=1
+
+hdfs dfs -setrep -R 2 input_csv_for_recommend_system
