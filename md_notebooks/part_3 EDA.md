@@ -1,14 +1,8 @@
 # Исследовательский анализ на spark
 
-#### Подключаемся к серверy
-
-```shell
-ssh 305_koryagin@37.139.32.56 -i ./id_rsa_305_koryagin.txt
-```
-
 #### Запускаем spark
 
-```shell
+```bash
 /spark2.4/bin/pyspark
 ```
 
