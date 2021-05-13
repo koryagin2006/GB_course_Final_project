@@ -4,22 +4,16 @@
 
 NB! Эта команда запускается на локальном компьютере, а не на удалённом сервере.
 
-```shell
+```bash
 cd ./GB_course_Final_project/
 
 scp -i id_rsa_305_koryagin.txt -r ./data/data.paruet 305_koryagin@37.139.32.56:~/for_recomend_system
 scp -i id_rsa_305_koryagin.txt -r ./data/Product_dict.parquet 305_koryagin@37.139.32.56:~/for_recomend_system
 ```
 
-### Подключаемся к серверy
-
-```shell
-ssh 305_koryagin@37.139.32.56 -i ./id_rsa_305_koryagin.txt
-```
-
 #### Проверяем записанные данные
 
-```shell
+```bash
 ls -l for_recomend_system/
 ```
 
@@ -31,7 +25,7 @@ ls -l for_recomend_system/
 
 #### Создадим папку input_csv_for_stream на HDFS, из которой стрим будет читать файлы и скопируем файл на HDFS. Cкопируем файл на HDFS из папки на локальном сервере
 
-```shell
+```bash
 hdfs dfs -mkdir input_csv_for_recommend_system
 
 hdfs dfs -put for_recomend_system/data.parquet input_csv_for_recommend_system
