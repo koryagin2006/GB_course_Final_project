@@ -11,7 +11,6 @@ user_path = "hdfs://bigdataanalytics2-head-shdpt-v31-1-0.novalocal:8020/user/305
 
 # Load Data
 data = spark.read.parquet(user_path + "input_csv_for_recommend_system/data.parquet")
-products = spark.read.parquet(user_path + "input_csv_for_recommend_system/Product_dict.parquet")
 
 # Data Preparation
 # convert the contact_id to StringType, conert the sale_date_date to DateType
@@ -19,7 +18,6 @@ data = data \
     .select('sale_date_date', 'contact_id', 'shop_id', 'product_id', 'quantity') \
     .withColumn(colName="sale_date_date", col=data["sale_date_date"].cast(DateType())) \
     .withColumn(colName="product_id", col=data["product_id"].cast(StringType()))
-products = products.withColumnRenamed(existing='__index_level_0__', new='product_id')
 
 # Number of unique users in our dataset
 users = data.select('contact_id').distinct()
@@ -48,7 +46,7 @@ def create_col_orders(df):
 train_orders = create_col_orders(df=train_df)
 validation_orders = create_col_orders(df=validation_df)
 
-# Learn a mapping from words to Vectors.    
+# Learn a mapping from words to Vectors.
 word2Vec = Word2Vec(
     vectorSize=100, minCount=5, numPartitions=1, seed=33, windowSize=3,
     inputCol='actual_products', outputCol='result')
