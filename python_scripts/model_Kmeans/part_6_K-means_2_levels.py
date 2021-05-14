@@ -22,25 +22,35 @@ products = spark \
 
 
 # Trains a k-means models
-def kmeans_model_fit(k):
+def kmeans_model_fit(k, dataset):
     kmeans = KMeans(featuresCol='vector', maxIter=20, seed=3)
-    kmeans_model = kmeans.fit(dataset=product_vectors, params={kmeans.k: k})
+    kmeans_model = kmeans.fit(dataset=dataset, params={kmeans.k: k})
     predictions = kmeans_model.transform(product_vectors)
     return predictions
 
 
-def show_products_of_one_cluster(num_cluster, n_rows=5, with_sort=True):
+def show_products_of_one_cluster(num_cluster, predictions, with_sort=True, ):
     print('\nNumber of  current cluser = ' + str(num_cluster))
     predictions_filtered = predictions \
         .where(condition=F.col('prediction') == num_cluster) \
         .select('product_id') \
-        .join(other=products, on='product_id', how='left')
+        .join(other=products, on='product_id', how='inner')
     predictions_filtered = predictions_filtered.orderBy('name', ascending=True) if with_sort else predictions_filtered
-    return predictions_filtered.show(n=n_rows, truncate=False)
+    return predictions_filtered
 
 
-predictions = kmeans_model_fit(k=21)
+predictions_level_1 = kmeans_model_fit(k=21, dataset=product_vectors)
+predictions_level_1.show()
 
-predictions.show(n=5)
+# Отберем только какой-нибудь один кластер,например №3 - на вид - для беременных
+show_products_of_one_cluster(num_cluster=3, predictions=predictions_level_1, with_sort=False).show(n=30, truncate=False)
 
-show_products_of_one_cluster(num_cluster=3)
+product_vectors_lvl_2 = product_vectors \
+    .join(other=predictions_level_1.select('product_id', 'prediction'), on='product_id', how='inner') \
+    .where(F.col('prediction') == 3).select('product_id', 'vector')
+
+predictions_level_2 = kmeans_model_fit(k=8, dataset=product_vectors_lvl_2)
+
+for i in range(8):
+    show_products_of_one_cluster(num_cluster=i, predictions=predictions_level_2, with_sort=True) \
+        .show(n=15, truncate=False)
