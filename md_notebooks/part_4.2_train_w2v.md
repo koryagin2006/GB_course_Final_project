@@ -2,6 +2,8 @@
 
 https://spark.apache.org/docs/2.4.7/ml-features.html#word2vec
 
+#### Запускаем spark приложение
+
 ```bash
 /spark2.4/bin/pyspark
 ```
@@ -13,6 +15,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.ml.feature import Word2Vec, Word2VecModel
 from pyspark.sql.types import DateType, StringType
+import time
 ```
 
 #### Загружаем данные о продажах в spark datafdame. Отберем только необходимые колонки
@@ -31,9 +34,9 @@ data = spark.read.parquet(user_path + "input_csv_for_recommend_system/data.parqu
 
 ```python
 data = data
-    .select('sale_date_date', 'contact_id', 'shop_id', 'product_id', 'quantity')
-    .withColumn(colName="sale_date_date", col=data["sale_date_date"].cast(DateType()))
-    .withColumn(colName="product_id", col=data["product_id"].cast(StringType()))
+.select('sale_date_date', 'contact_id', 'shop_id', 'product_id', 'quantity')
+.withColumn(colName="sale_date_date", col=data["sale_date_date"].cast(DateType()))
+.withColumn(colName="product_id", col=data["product_id"].cast(StringType()))
 data.show(n=5, truncate=True)
 ```
 
@@ -90,11 +93,11 @@ validation_df.count = 1948492
 ```python
 def create_col_orders(df):
     return df
-        .select(F.concat_ws('_', data.sale_date_date, data.shop_id, data.contact_id).alias('order_id'),
-                'product_id', 'quantity')
-        .groupBy('order_id')
-        .agg(F.collect_list(col='product_id'))
-        .withColumnRenamed(existing='collect_list(product_id)', new='actual_products')
+    .select(F.concat_ws('_', data.sale_date_date, data.shop_id, data.contact_id).alias('order_id'),
+            'product_id', 'quantity')
+    .groupBy('order_id')
+    .agg(F.collect_list(col='product_id'))
+    .withColumnRenamed(existing='collect_list(product_id)', new='actual_products')
 
 
 train_orders = create_col_orders(df=train_df)
@@ -121,10 +124,13 @@ train_orders.show(n=5)
 word2Vec = Word2Vec(
     vectorSize=100, minCount=5, numPartitions=1, seed=33, windowSize=3,
     inputCol='actual_products', outputCol='result')
+
+start = time.time()
 model = word2Vec.fit(dataset=train_orders)
+print('time = ' + str(time.time() - start))
 ```
 
-#### Сохраните модель
+#### Сохранение модели на hdfs
 
 ```python
 model.save(path=user_path + 'ml_models/word2vec_model_2021_05_11')
