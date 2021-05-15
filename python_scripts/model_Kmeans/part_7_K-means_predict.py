@@ -1,6 +1,5 @@
 """
 /spark2.4/bin/pyspark --packages com.datastax.spark:spark-cassandra-connector_2.11:2.4.2
-https://habr.com/ru/company/jetinfosystems/blog/467745/
 """
 
 from pyspark.sql import SparkSession
@@ -37,9 +36,7 @@ def show_products_of_one_cluster(num_cluster, n_rows, with_sort=True):
     return predictions_filtered.show(n=n_rows, truncate=False)
 
 
-show_products_of_one_cluster(num_cluster=19, n_rows=30, with_sort=True)
 show_products_of_one_cluster(num_cluster=10, n_rows=15, with_sort=True)
-
 """
 Number of  current cluser = 10
 +----------+----------------------------------------------------------------+
@@ -54,15 +51,6 @@ Number of  current cluser = 10
 |64809     |Береза [лист фильтр-пакет 1,5г] N20 КЛС 617                     |
 +----------+----------------------------------------------------------------+
 """
-
-result = predictions \
-    .select('product_id', 'prediction') \
-    .join(other=products, on='product_id', how='left')
-
-result \
-    .groupBy('prediction').count() \
-    .orderBy('prediction') \
-    .show(n=21, truncate=False)
 
 for i in range(21):
     show_products_of_one_cluster(num_cluster=i, n_rows=6, with_sort=False)
