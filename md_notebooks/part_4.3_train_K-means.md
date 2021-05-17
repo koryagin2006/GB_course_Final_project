@@ -88,7 +88,7 @@ def get_silhouette_scores(vectors_df, features_col, clusters_list):
     return scores_df
 ```
 
-Побдор сделаем для чисел кластеров от 5 до 99 и 
+Побдор сделаем для чисел кластеров от 5 до 200 и 
 ```python
 scores_df = get_silhouette_scores(clusters_list=range(5, 200, 1), 
                                   vectors_df=product_vectors, 
