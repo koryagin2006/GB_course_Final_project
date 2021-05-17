@@ -33,10 +33,10 @@ data = spark.read.parquet(user_path + "input_csv_for_recommend_system/data.parqu
 #### Необходимо преобразовать `contact_id` в StringType, а `sale_date_date` в DateType
 
 ```python
-data = data
-.select('sale_date_date', 'contact_id', 'shop_id', 'product_id', 'quantity')
-.withColumn(colName="sale_date_date", col=data["sale_date_date"].cast(DateType()))
-.withColumn(colName="product_id", col=data["product_id"].cast(StringType()))
+data = data \
+    .select('sale_date_date', 'contact_id', 'shop_id', 'product_id', 'quantity') \
+    .withColumn(colName="sale_date_date", col=data["sale_date_date"].cast(DateType())) \
+    .withColumn(colName="product_id", col=data["product_id"].cast(StringType()))
 data.show(n=5, truncate=True)
 ```
 
@@ -92,12 +92,12 @@ validation_df.count = 1948492
 
 ```python
 def create_col_orders(df):
-    return df
-    .select(F.concat_ws('_', data.sale_date_date, data.shop_id, data.contact_id).alias('order_id'),
-            'product_id', 'quantity')
-    .groupBy('order_id')
-    .agg(F.collect_list(col='product_id'))
-    .withColumnRenamed(existing='collect_list(product_id)', new='actual_products')
+    return df \
+        .select(F.concat_ws('_', data.sale_date_date, data.shop_id, data.contact_id).alias('order_id'),
+                'product_id', 'quantity') \
+        .groupBy('order_id') \
+        .agg(F.collect_list(col='product_id')) \
+        .withColumnRenamed(existing='collect_list(product_id)', new='actual_products')
 
 
 train_orders = create_col_orders(df=train_df)

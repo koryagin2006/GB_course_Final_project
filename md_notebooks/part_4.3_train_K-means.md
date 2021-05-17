@@ -30,9 +30,9 @@ user_path = "hdfs://bigdataanalytics2-head-shdpt-v31-1-0.novalocal:8020/user/305
 
 w2v_model = Word2VecModel.load(path=user_path + 'ml_models/word2vec_model_2021_05_11')
 product_vectors = w2v_model.getVectors().withColumnRenamed(existing='word', new='product_id')
-products = spark
-    .read.format("org.apache.spark.sql.cassandra")
-    .options(table="products", keyspace="final_project").load()
+products = spark \
+    .read.format("org.apache.spark.sql.cassandra") \
+    .options(table="products", keyspace="final_project").load() \
     .withColumn('name', F.regexp_replace('name', r'(\(\d+\) )', ''))
 
 product_vectors.show(n=5)
@@ -100,8 +100,8 @@ def get_silhouette_scores(vectors_df, features_col, clusters_list):
 scores_df = get_silhouette_scores(clusters_list=range(5, 200, 1),
                                   vectors_df=product_vectors,
                                   features_col='vector')
-scores_df
-    .orderBy('score', ascending=False)
+scores_df \
+    .orderBy('score', ascending=False) \
     .show(n=5)
 ```
 

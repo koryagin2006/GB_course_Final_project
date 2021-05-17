@@ -108,12 +108,12 @@ data.select([F.countDistinct(col).alias(col) for col in data.columns]).show()
 
 # Load Data
 data = spark.read.parquet(user_path + "input_csv_for_recommend_system/data.parquet")
-data = data
-.select('sale_date_date', 'contact_id', 'product_id', 'quantity')
-.withColumn('quantity', F.when(F.col("quantity") != 1, 1).otherwise(F.col("quantity")))
-.withColumnRenamed(existing='product_id', new='item_id')
-.withColumnRenamed(existing='contact_id', new='user_id')
-.withColumn('week_of_year', F.weekofyear(F.col('sale_date_date')))
+data = data \
+    .select('sale_date_date', 'contact_id', 'product_id', 'quantity') \
+    .withColumn('quantity', F.when(F.col("quantity") != 1, 1).otherwise(F.col("quantity"))) \
+    .withColumnRenamed(existing='product_id', new='item_id') \
+    .withColumnRenamed(existing='contact_id', new='user_id') \
+    .withColumn('week_of_year', F.weekofyear(F.col('sale_date_date')))
 data.show(n=5)
 ```
 
@@ -251,13 +251,13 @@ test_predictions.show(n=5)
 #### Создадим результирующую таблицу с реальными и предсказанными товарами для оценки качества
 
 ```python
-train_actual_items = train
-.select('user_id', 'item_id')
-.groupBy('user_id').agg(F.collect_list(col='item_id'))
-.withColumnRenamed(existing='collect_list(item_id)', new='actual')
+train_actual_items = train \
+    .select('user_id', 'item_id') \
+    .groupBy('user_id').agg(F.collect_list(col='item_id')) \
+    .withColumnRenamed(existing='collect_list(item_id)', new='actual')
 
-train_recs_items = model.recommendForAllUsers(numItems=5)
-.select('user_id', F.col("recommendations.item_id").alias('recs_ALS'))
+train_recs_items = model.recommendForAllUsers(numItems=5) \
+    .select('user_id', F.col("recommendations.item_id").alias('recs_ALS'))
 
 result = train_actual_items.join(other=train_recs_items, on='user_id', how='inner')
 result.show(n=5, truncate=True)
@@ -308,10 +308,10 @@ metrics_df.withColumn('value', F.round('value', 5)).show(truncate=False)
 #### Необходимо преобразовать `contact_id` в StringType, а `sale_date_date` в DateType
 
 ```python
-data = data
-.select('sale_date_date', 'contact_id', 'shop_id', 'product_id', 'quantity')
-.withColumn(colName="sale_date_date", col=data["sale_date_date"].cast(DateType()))
-.withColumn(colName="product_id", col=data["product_id"].cast(StringType()))
+data = data \
+    .select('sale_date_date', 'contact_id', 'shop_id', 'product_id', 'quantity') \
+    .withColumn(colName="sale_date_date", col=data["sale_date_date"].cast(DateType())) \
+    .withColumn(colName="product_id", col=data["product_id"].cast(StringType()))
 data.show(n=5, truncate=True)
 ```
 
@@ -367,12 +367,12 @@ validation_df.count = 1948492
 
 ```python
 def create_col_orders(df):
-    return df
-    .select(F.concat_ws('_', data.sale_date_date, data.shop_id, data.contact_id).alias('order_id'),
-            'product_id', 'quantity')
-    .groupBy('order_id')
-    .agg(F.collect_list(col='product_id'))
-    .withColumnRenamed(existing='collect_list(product_id)', new='actual_products')
+    return df \
+        .select(F.concat_ws('_', data.sale_date_date, data.shop_id, data.contact_id).alias('order_id'),
+                'product_id', 'quantity') \
+        .groupBy('order_id') \
+        .agg(F.collect_list(col='product_id')) \
+        .withColumnRenamed(existing='collect_list(product_id)', new='actual_products')
 
 
 train_orders = create_col_orders(df=train_df)
@@ -396,10 +396,8 @@ train_orders.show(n=5)
 ### Обучение модели
 
 ```python
-word2Vec = Word2Vec(
-    vectorSize=100, minCount=5, numPartitions=1, seed=33, windowSize=3,
-    inputCol='actual_products', outputCol='result')
-
+word2Vec = Word2Vec(vectorSize=100, minCount=5, numPartitions=1, seed=33, windowSize=3,
+                    inputCol='actual_products', outputCol='result')
 start = time.time()
 model = word2Vec.fit(dataset=train_orders)
 print('time = ' + str(time.time() - start))
@@ -438,9 +436,9 @@ user_path = "hdfs://bigdataanalytics2-head-shdpt-v31-1-0.novalocal:8020/user/305
 
 w2v_model = Word2VecModel.load(path=user_path + 'ml_models/word2vec_model_2021_05_11')
 product_vectors = w2v_model.getVectors().withColumnRenamed(existing='word', new='product_id')
-products = spark
-    .read.format("org.apache.spark.sql.cassandra")
-    .options(table="products", keyspace="final_project").load()
+products = spark \
+    .read.format("org.apache.spark.sql.cassandra") \
+    .options(table="products", keyspace="final_project").load() \
     .withColumn('name', F.regexp_replace('name', r'(\(\d+\) )', ''))
 
 product_vectors.show(n=5)
@@ -505,11 +503,9 @@ def get_silhouette_scores(vectors_df, features_col, clusters_list):
 Побдор сделаем для чисел кластеров от 5 до 100 и
 
 ```python
-scores_df = get_silhouette_scores(clusters_list=range(5, 100, 1),
-                                  vectors_df=product_vectors,
-                                  features_col='vector')
-scores_df
-    .orderBy('score', ascending=False)
+scores_df = get_silhouette_scores(clusters_list=range(5, 100, 1), vectors_df=product_vectors, features_col='vector')
+scores_df \
+    .orderBy('score', ascending=False) \
     .show(n=5)
 ```
 
@@ -560,22 +556,19 @@ class ModelALS:
     def __init__(self):
         self.model = None
         self.user_path = "hdfs://bigdataanalytics2-head-shdpt-v31-1-0.novalocal:8020/user/305_koryagin/"
-
     #
     def load_model(self, model_path):
         """ Загрузка модели из hdfs """
         self.model = ALSModel.load(path=self.user_path + model_path)
-
     #
     def predict_to_dict(self, user_id, n_recs=5):
         start = time.time()
         preds_dict = {}
-        recs_df = self.model
-            .recommendForAllUsers(numItems=n_recs)
-            .where(condition=F.col('user_id') == user_id)
-            .withColumn(colName="rec_exp", col=F.explode("recommendations"))
+        recs_df = self.model \
+            .recommendForAllUsers(numItems=n_recs) \
+            .where(condition=F.col('user_id') == user_id) \
+            .withColumn(colName="rec_exp", col=F.explode("recommendations")) \
             .select(F.col("rec_exp.item_id"))
-        #
         preds_dict['user_id'] = user_id
         preds_dict['recommendations'] = [int(row.item_id) for row in recs_df.collect()]
         preds_dict['prediction time'] = round(number=time.time() - start, ndigits=3)
@@ -586,39 +579,34 @@ class ModelWord2Vec:
     def __init__(self):
         self.model = None
         self.user_path = "hdfs://bigdataanalytics2-head-shdpt-v31-1-0.novalocal:8020/user/305_koryagin/"
-
     #
     def load_model(self, model_path):
         """ Загрузка модели из hdfs """
         self.model = Word2VecModel.load(path=self.user_path + model_path)
-
     #
     def predict_to_dict(self, product_id, n_recs=5):
         """ Выдача предскааний в виде словаря """
         start = time.time()
         preds_dict = {}
-        recs_df = self.model
-            .findSynonyms(word=str(product_id), num=n_recs)
-            .withColumnRenamed(existing='word', new='product_id')
+        recs_df = self.model \
+            .findSynonyms(word=str(product_id), num=n_recs) \
+            .withColumnRenamed(existing='word', new='product_id') \
             .orderBy('similarity', ascending=False)
-        #
         preds_dict['product_id'] = product_id
         preds_dict['recommendations'] = [int(row.product_id) for row in recs_df.collect()]
         preds_dict['prediction time'] = round(number=time.time() - start, ndigits=3)
         return preds_dict
-
     #
     def get_name_product_id(self, products_df, product_id):
         name = products_df.where(condition=F.col('product_id') == product_id).select('name').collect()[0]['name']
         return name
-
     #
     def predict_to_df(self, products_df, product_id, num_recs=5):
-        return self.model
-            .findSynonyms(word=str(product_id), num=num_recs)
-            .withColumnRenamed(existing='word', new='product_id')
-            .join(other=products_df, on='product_id', how='inner')
-            .orderBy('similarity', ascending=False).withColumn('similarity', F.round('similarity', 6))
+        return self.model \
+            .findSynonyms(word=str(product_id), num=num_recs) \
+            .withColumnRenamed(existing='word', new='product_id') \
+            .join(other=products_df, on='product_id', how='inner') \
+            .orderBy('similarity', ascending=False).withColumn('similarity', F.round('similarity', 6)) \
             .select('product_id', 'name')
 ```
 
@@ -702,10 +690,10 @@ predictions = kmeans_model.transform(product_vectors)
 
 def show_products_of_one_cluster(num_cluster, n_rows, with_sort=True):
     print('\nNumber of  current cluser = ' + str(num_cluster))
-    predictions_filtered = predictions
-        .where(condition=F.col('prediction') == num_cluster)
-        .select('product_id')
-        .join(other=products, on='product_id', how='left')
+    predictions_filtered = predictions \
+        .where(condition=F.col('prediction') == num_cluster) \
+        .select('product_id') \
+        .join(other=products, on='product_id', how='left') \
     predictions_filtered = predictions_filtered.orderBy('name', ascending=True) if with_sort else predictions_filtered
     return predictions_filtered.show(n=n_rows, truncate=False)
 
