@@ -1,6 +1,15 @@
 # Проект рекомендательной системы для аптечной сети
- Финальный проект GeekBrains
- 
+Финальный проект GeekBrains
+
+- [Описание сервиса](https://github.com/koryagin2006/Pharmacy_recommendation_system/blob/master/README.md#%D0%BE%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5-%D1%81%D0%B5%D1%80%D0%B2%D0%B8%D1%81%D0%B0)
+- [Построение модели коллаборативной фильтрации](https://github.com/koryagin2006/Pharmacy_recommendation_system/blob/master/README.md#%D0%BF%D0%BE%D1%81%D1%82%D1%80%D0%BE%D0%B5%D0%BD%D0%B8%D0%B5-%D0%BC%D0%BE%D0%B4%D0%B5%D0%BB%D0%B8-%D0%BA%D0%BE%D0%BB%D0%BB%D0%B0%D0%B1%D0%BE%D1%80%D0%B0%D1%82%D0%B8%D0%B2%D0%BD%D0%BE%D0%B9-%D1%84%D0%B8%D0%BB%D1%8C%D1%82%D1%80%D0%B0%D1%86%D0%B8%D0%B8-ml-collaborative-filtering)
+- [Построение модели Word2Vec](https://github.com/koryagin2006/Pharmacy_recommendation_system/blob/master/README.md#%D0%BF%D0%BE%D1%81%D1%82%D1%80%D0%BE%D0%B5%D0%BD%D0%B8%D0%B5-%D0%BC%D0%BE%D0%B4%D0%B5%D0%BB%D0%B8-word2vec)
+- [Построение модели кластеризации](https://github.com/koryagin2006/Pharmacy_recommendation_system/blob/master/README.md#%D0%BF%D0%BE%D1%81%D1%82%D1%80%D0%BE%D0%B5%D0%BD%D0%B8%D0%B5-%D0%BC%D0%BE%D0%B4%D0%B5%D0%BB%D0%B8-%D0%BA%D0%BB%D0%B0%D1%81%D1%82%D0%B5%D1%80%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D0%B8-%D0%BA-means)
+  - [Подбор количества классов
+](https://github.com/koryagin2006/Pharmacy_recommendation_system/blob/master/README.md#%D0%BF%D0%BE%D0%B4%D0%B1%D0%BE%D1%80-%D0%BA%D0%BE%D0%BB%D0%B8%D1%87%D0%B5%D1%81%D1%82%D0%B2%D0%B0-%D0%BA%D0%BB%D0%B0%D1%81%D1%81%D0%BE%D0%B2)
+- [Выдача рекомендаций
+](https://github.com/koryagin2006/Pharmacy_recommendation_system/blob/master/README.md#%D0%B2%D1%8B%D0%B4%D0%B0%D1%87%D0%B0-%D1%80%D0%B5%D0%BA%D0%BE%D0%BC%D0%B5%D0%BD%D0%B4%D0%B0%D1%86%D0%B8%D0%B9)
+
 ## Описание сервиса
 
 Сервис получает данные о покупках клиента, анализирует их с помощью модели машинного обучения и отправляет сотруднику на кассе перечень рекомендуемых товаров. В него входят топ-3 товаров, которые клиент с высокой вероятностью добавит к своим покупкам. Сервис предлагает конкретные товарные позиции с точностью до артикула (SKU).
