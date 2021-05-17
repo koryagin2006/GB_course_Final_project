@@ -23,20 +23,21 @@ import time
 spark.sparkContext.setLogLevel("ERROR")
 ```
 
-
 #### Загружаем данные о продажах в spark datafdame. Отберем только необходимые колонки
+
 ```python
 user_path = "hdfs://bigdataanalytics2-head-shdpt-v31-1-0.novalocal:8020/user/305_koryagin/"
 
 w2v_model = Word2VecModel.load(path=user_path + 'ml_models/word2vec_model_2021_05_11')
 product_vectors = w2v_model.getVectors().withColumnRenamed(existing='word', new='product_id')
-products = spark \
-    .read.format("org.apache.spark.sql.cassandra") \
-    .options(table="products", keyspace="final_project").load() \
+products = spark
+    .read.format("org.apache.spark.sql.cassandra")
+    .options(table="products", keyspace="final_project").load()
     .withColumn('name', F.regexp_replace('name', r'(\(\d+\) )', ''))
 
 product_vectors.show(n=5)
 ```
+
 ```shell
 +----------+--------------------+
 |product_id|              vector|
@@ -48,9 +49,11 @@ product_vectors.show(n=5)
 |    134530|[-0.0764870494604...|
 +----------+--------------------+
 ```
+
 ```python
 products.show(n=5, truncate=False)
 ```
+
 ```shell
 +----------+----------------------------------------------------------+
 |product_id|name                                                      |
@@ -67,7 +70,10 @@ products.show(n=5, truncate=False)
 
 Подбор осуществляется по максимальному значению коэффициента `silhouette`.
 
-Коэффициент «силуэт» вычисляется с помощью среднего внутрикластерного расстояния (a) и среднего расстояния до ближайшего кластера (b) по каждому образцу. Силуэт вычисляется как (b - a) / max(a, b). Поясню: b — это расстояние между a и ближайшим кластером, в который a не входит. Можно вычислить среднее значение силуэта по всем образцам и использовать его как метрику для оценки количества кластеров.
+Коэффициент «силуэт» вычисляется с помощью среднего внутрикластерного расстояния (a) и среднего расстояния до ближайшего
+кластера (b) по каждому образцу. Силуэт вычисляется как (b - a) / max(a, b). Поясню: b — это расстояние между a и
+ближайшим кластером, в который a не входит. Можно вычислить среднее значение силуэта по всем образцам и использовать его
+как метрику для оценки количества кластеров.
 
 Для вычисления используем функцию, в которую передаем список чисел кластеров
 
@@ -81,20 +87,21 @@ def get_silhouette_scores(vectors_df, features_col, clusters_list):
         KMeans_fit = KMeans_algo.fit(vectors_df)
         output = KMeans_fit.transform(vectors_df)
         score = evaluator.evaluate(output)
-        print('i: {}, score: {}, time: {}'. format(i, score, str(time.time() - start)))
+        print('i: {}, score: {}, time: {}'.format(i, score, str(time.time() - start)))
         silhouette_scores_dict[i] = score
     scores_df = spark.createDataFrame(data=list(map(list, silhouette_scores_dict.items())),
                                       schema=["n_clusters", "score"])
     return scores_df
 ```
 
-Побдор сделаем для чисел кластеров от 5 до 200 и 
+Побдор сделаем для чисел кластеров от 5 до 200 и
+
 ```python
-scores_df = get_silhouette_scores(clusters_list=range(5, 200, 1), 
-                                  vectors_df=product_vectors, 
+scores_df = get_silhouette_scores(clusters_list=range(5, 200, 1),
+                                  vectors_df=product_vectors,
                                   features_col='vector')
-scores_df \
-    .orderBy('score', ascending=False) \
+scores_df
+    .orderBy('score', ascending=False)
     .show(n=5)
 ```
 

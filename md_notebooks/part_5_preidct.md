@@ -31,15 +31,17 @@ def predict_als(user_id, n_recs=3, model=model_als):
     start = time.time()
     preds_dict = {}
     recs_list = model
-        .recommendForAllUsers(numItems=n_recs)
-        .where(condition=F.col('user_id') == user_id)
-        .withColumn(colName="rec_exp", col=F.explode("recommendations"))
-        .select(F.col("rec_exp.item_id"))
-    #
-    preds_dict['user_id'] = user_id
-    preds_dict['recommendations'] = [int(row.item_id) for row in recs_list.collect()]
-    preds_dict['prediction time'] = round(number=time.time() - start, ndigits=3)
-    return preds_dict
+    .recommendForAllUsers(numItems=n_recs)
+    .where(condition=F.col('user_id') == user_id)
+    .withColumn(colName="rec_exp", col=F.explode("recommendations"))
+    .select(F.col("rec_exp.item_id"))
+
+
+#
+preds_dict['user_id'] = user_id
+preds_dict['recommendations'] = [int(row.item_id) for row in recs_list.collect()]
+preds_dict['prediction time'] = round(number=time.time() - start, ndigits=3)
+return preds_dict
 ```
 
 #### Сделаем предсказание для `contact_id` = 471

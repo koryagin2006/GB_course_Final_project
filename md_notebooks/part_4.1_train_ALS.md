@@ -30,11 +30,11 @@ user_path = "hdfs://bigdataanalytics2-head-shdpt-v31-1-0.novalocal:8020/user/305
 # Load Data
 data = spark.read.parquet(user_path + "input_csv_for_recommend_system/data.parquet")
 data = data
-    .select('sale_date_date', 'contact_id', 'product_id', 'quantity')
-    .withColumn('quantity', F.when(F.col("quantity") != 1, 1).otherwise(F.col("quantity")))
-    .withColumnRenamed(existing='product_id', new='item_id')
-    .withColumnRenamed(existing='contact_id', new='user_id')
-    .withColumn('week_of_year', F.weekofyear(F.col('sale_date_date')))
+.select('sale_date_date', 'contact_id', 'product_id', 'quantity')
+.withColumn('quantity', F.when(F.col("quantity") != 1, 1).otherwise(F.col("quantity")))
+.withColumnRenamed(existing='product_id', new='item_id')
+.withColumnRenamed(existing='contact_id', new='user_id')
+.withColumn('week_of_year', F.weekofyear(F.col('sale_date_date')))
 data.show(n=5)
 ```
 
@@ -173,12 +173,12 @@ test_predictions.show(n=5)
 
 ```python
 train_actual_items = train
-    .select('user_id', 'item_id')
-    .groupBy('user_id').agg(F.collect_list(col='item_id'))
-    .withColumnRenamed(existing='collect_list(item_id)', new='actual')
+.select('user_id', 'item_id')
+.groupBy('user_id').agg(F.collect_list(col='item_id'))
+.withColumnRenamed(existing='collect_list(item_id)', new='actual')
 
 train_recs_items = model.recommendForAllUsers(numItems=5)
-    .select('user_id', F.col("recommendations.item_id").alias('recs_ALS'))
+.select('user_id', F.col("recommendations.item_id").alias('recs_ALS'))
 
 result = train_actual_items.join(other=train_recs_items, on='user_id', how='inner')
 result.show(n=5, truncate=True)
