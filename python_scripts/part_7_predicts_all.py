@@ -1,5 +1,3 @@
-# Выдача рекомендаций
-
 """
 /spark2.4/bin/pyspark --packages com.datastax.spark:spark-cassandra-connector_2.11:2.4.2
 """
@@ -79,7 +77,7 @@ class ModelWord2Vec:
             .orderBy('similarity', ascending=False).withColumn('similarity', F.round('similarity', 6)) \
             .select('product_id', 'name')
 
-#
+
 model_als = ModelALS()
 model_als.load_model(model_path="ml_models/my_als_model_2021-05-11_last_15_weeks.model_als")
 

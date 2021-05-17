@@ -4,58 +4,62 @@
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.ml.feature import Word2VecModel
+from pprint import pprint
+import time
+
 
 spark = SparkSession.builder.appName("gogin_spark").getOrCreate()
+spark.sparkContext.setLogLevel("ERROR")
 
-# Loading the model and data
 user_path = "hdfs://bigdataanalytics2-head-shdpt-v31-1-0.novalocal:8020/user/305_koryagin/"
-loadedModel = Word2VecModel.load(path=user_path + 'ml_models/word2vec_model_2021_05_11')
 products = spark.read \
     .format("org.apache.spark.sql.cassandra").options(table="products", keyspace="final_project").load() \
     .withColumn('name', F.regexp_replace('name', r'(\(\d+\) )', ''))
 
 
-def get_synonyms_to_dataframe(model, product_id, num_synonyms=5):
-    name = products.where(condition=F.col('product_id') == product_id).select('name').collect()[0]['name']
-    print('\n similar for %s' % name)
-    return model \
-        .findSynonyms(word=str(product_id), num=num_synonyms) \
-        .withColumnRenamed(existing='word', new='product_id') \
-        .join(other=products, on='product_id', how='inner') \
-        .orderBy('similarity', ascending=False).withColumn('similarity', F.round('similarity', 6))
+class ModelWord2Vec:
+    def __init__(self):
+        self.model = None
+        self.user_path = "hdfs://bigdataanalytics2-head-shdpt-v31-1-0.novalocal:8020/user/305_koryagin/"
+    #
+    def load_model(self, model_path):
+        """ Загрузка модели из hdfs """
+        self.model = Word2VecModel.load(path=self.user_path + model_path)
+    #
+    def predict_to_dict(self, product_id, n_recs=5):
+        """ Выдача предскааний в виде словаря """
+        start = time.time()
+        preds_dict = {}
+        recs_df = self.model \
+            .findSynonyms(word=str(product_id), num=n_recs) \
+            .withColumnRenamed(existing='word', new='product_id') \
+            .orderBy('similarity', ascending=False)
+        #
+        preds_dict['product_id'] = product_id
+        preds_dict['recommendations'] = [int(row.product_id) for row in recs_df.collect()]
+        preds_dict['prediction time'] = round(number=time.time() - start, ndigits=3)
+        return preds_dict
+    #
+    def get_name_product_id(self, products_df, product_id):
+        name = products_df.where(condition=F.col('product_id') == product_id).select('name').collect()[0]['name']
+        return name
+    #
+    def predict_to_df(self, products_df, product_id, num_recs=5):
+        return self.model \
+            .findSynonyms(word=str(product_id), num=num_recs) \
+            .withColumnRenamed(existing='word', new='product_id') \
+            .join(other=products_df, on='product_id', how='inner') \
+            .orderBy('similarity', ascending=False).withColumn('similarity', F.round('similarity', 6)) \
+            .select('product_id', 'name')
 
 
-def get_synonyms_to_list(model, product_id, num_synonyms=5):
-    recs_df = model \
-        .findSynonyms(word=str(product_id), num=num_synonyms) \
-        .withColumnRenamed(existing='word', new='product_id') \
-        .join(other=products, on='product_id', how='inner') \
-        .orderBy('similarity', ascending=False)
-    return [int(row.product_id) for row in recs_df.collect()]
+model_w2v = ModelWord2Vec()
+model_w2v.load_model(model_path='ml_models/word2vec_model_2021_05_11')
 
+predict_w2v = model_w2v.predict_to_dict(product_id=33569, n_recs=3)
+predict_w2v_df = model_w2v.predict_to_df(products_df=products, product_id=33569, num_recs=3)
+product_name = model_w2v.get_name_product_id(products_df=products, product_id=33569)
 
-def view_product_list(n_rows):
-    """ Вывести список товаров """
-    return spark \
-        .read.parquet(user_path + "input_csv_for_recommend_system/data.parquet") \
-        .select('product_id').distinct() \
-        .join(other=products, on='product_id', how='inner') \
-        .show(n=n_rows, truncate=False)
-
-
-# view_product_list(n_rows=30)
-
-required_product_id = 33569
-get_synonyms_to_dataframe(model=loadedModel, product_id=required_product_id, num_synonyms=3).show(truncate=False)
-"""
- similar for (68570) Диротон таб.20мг №28 738
-+----------+----------+------------------------------------------------------------------+
-|product_id|similarity|name                                                              |
-+----------+----------+------------------------------------------------------------------+
-|52119     |0.771674  |(112207) Метопролол ретард-Акрихин таб.пролонг.п.п.о.100мг №30 738|
-|60972     |0.771113  |(70768) Амлодипин тб 10мг N20 738                                 |
-|137421    |0.768555  |(88567) Пектрол табл. 40 мг. №30 738                              |
-+----------+----------+------------------------------------------------------------------+
-"""
-get_synonyms_to_list(model=loadedModel, product_id=required_product_id, num_synonyms=3)
-""" [52119, 60972, 137421] """
+print(product_name)
+pprint(predict_w2v)
+predict_w2v_df.show(truncate=False)

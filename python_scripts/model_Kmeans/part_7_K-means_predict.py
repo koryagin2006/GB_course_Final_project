@@ -8,10 +8,10 @@ from pyspark.ml.feature import Word2VecModel
 from pyspark.ml.clustering import KMeans, KMeansModel
 
 spark = SparkSession.builder.appName("gogin_spark").getOrCreate()
+spark.sparkContext.setLogLevel("ERROR")
 
 # Loading the model and data
 user_path = "hdfs://bigdataanalytics2-head-shdpt-v31-1-0.novalocal:8020/user/305_koryagin/"
-
 w2v_model = Word2VecModel.load(path=user_path + 'ml_models/word2vec_model_2021_05_11')
 kmeans_best_params = KMeans.load(path=user_path + 'ml_models/kmeans_2021-05-12')
 kmeans_model = KMeansModel.load(path=user_path + 'ml_models/kmeans_model_2021-05-12')
@@ -54,27 +54,3 @@ Number of  current cluser = 10
 
 for i in range(21):
     show_products_of_one_cluster(num_cluster=i, n_rows=6, with_sort=False)
-
-cluster_dict = {
-    0: 'Инъекции',
-    1: 'БАДы и косметика',
-    2: 'Свечи вагинальные',
-    3: 'Для беременных',
-    4: '__Не_определено',
-    5: 'Косметика',
-    6: 'Противопростудные',
-    7: 'Перевязочные',
-    8: 'Антигипертензивные',
-    9: 'Для полости рта',
-    10: 'Травы',
-    11: 'Для детей',
-    12: 'Для проблемной кожи',
-    13: '__Не_определено',
-    14: 'Противопростудные для детей',
-    15: 'Противопаркинсоническое',
-    16: 'Глазные капли',
-    17: '__Не_определено',
-    18: '?????',
-    19: 'Желудочные',
-    20: 'Уросептики'
-}

@@ -54,7 +54,7 @@ ERROR util.Utils: Aborting task org.apache.hadoop.hdfs.protocol.DSQuotaExceededE
 /user/305_koryagin is exceeded: quota = 1073741824 B = 1 GB but diskspace consumed = 1112998925 B = 1.04 GB
 """
 
-# Создадим таблицу с реальными и предсказанными товарами
+# Create a table with real and predicted products
 train_actual_items = train \
     .select('user_id', 'item_id') \
     .groupBy('user_id').agg(F.collect_list(col='item_id')) \
@@ -65,7 +65,7 @@ train_recs_items = model.recommendForAllUsers(numItems=5) \
 
 result = train_actual_items.join(other=train_recs_items, on='user_id', how='inner')
 
-# Метрики качества
+# Quality metrics
 test_predictions = model.transform(test)
 metrics = RankingMetrics(predictionAndLabels=result.select('actual', 'recs_ALS').rdd.map(tuple))
 metrics_df = spark.createDataFrame(data=[('RMSE', evaluator.evaluate(test_predictions)),
